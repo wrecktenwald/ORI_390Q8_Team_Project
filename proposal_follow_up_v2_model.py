@@ -17,8 +17,8 @@ lz_lcra_dam_2022 = dam_2022.loc[dam_2022.SETTLEMENT_POINT == 'LZ_LCRA'][['YEAR',
 lz_lcra_dam_2022.sort_values(['YEAR', 'MONTH', 'DAY', 'HOUR_ENDING'], inplace=True)
 lz_lcra_dam_2022.reset_index(inplace=True, drop=True)
 
-# hours = 8760
-hours = 24 * 7  # testing for limited set of hours
+hours = 8760
+# hours = 24 * 7  # testing for limited set of hours
 
 # Setting up in MW/MWh
 D_t = 0.9 * 100  # OR = (1 - 0.05) * 100
@@ -35,9 +35,9 @@ v__d = 0
 R_ij = 0.915  # TODO linear interp between years, get matrix defined for valid ij pairs
 r = 0.05  # 5 to 10% noted to be a good assumption by Dr. Leibowicz
 T = np.arange(0, hours)  # use native 0 indexing in Python
-# TODO: generation of V is too slow (60+ seconds) using either method
-V = [_ for _ in list(itertools.product(T, T)) if _[1] - _[0] >= 24]  # only consider 24 hr pds
-# V = [(i, j) for i in T for j in T if j - i >= 24]  # only consider 24 hr pds
+valid_pair_span = 24
+V = [_ for _ in list(itertools.product(T, T)) if ((_[1] - _[0] <= valid_pair_span) & (_[1] - _[0] > 0))]  # only consider valid periods
+# V = [(_, _ + span) for _ in T for span in np.arange(1, valid_pair_span + 1) if _ + span < hours]  # only consider valid periods
 
 # LP
 model = ConcreteModel()
