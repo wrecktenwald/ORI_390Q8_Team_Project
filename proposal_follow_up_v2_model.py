@@ -48,7 +48,7 @@ model.s = Var(T, domain=NonNegativeReals)
 
 # TODO: use R_ij matrix
 model.objective = Objective(
-    expr=sum(model.f[idx] * ((p_t[idx[1] - v__d]) * R_ij - (p_t[idx[0]] + v__c)) * np.exp(-r * idx[1] / 8760) for idx in V),  
+    expr=sum(model.f[idx] * ((p_t[idx[1]] - v__d) * R_ij - (p_t[idx[0]] + v__c)) * np.exp(-r * idx[1] / 8760) for idx in V),  
     sense=maximize
 )
 
