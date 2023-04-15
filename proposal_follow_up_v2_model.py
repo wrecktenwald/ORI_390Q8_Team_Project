@@ -36,7 +36,8 @@ R_ij = 0.915  # TODO linear interp between years, get matrix defined for valid i
 r = 0.05  # 5 to 10% noted to be a good assumption by Dr. Leibowicz
 T = np.arange(0, hours)  # use native 0 indexing in Python
 valid_pair_span = 24
-V = [_ for _ in list(itertools.product(T, T)) if ((_[1] - _[0] <= valid_pair_span) & (_[1] - _[0] > 0))]  # only consider valid periods
+
+V = [idx for idx in list(itertools.product(T, T)) if ((idx[1] - idx[0] <= valid_pair_span) & (idx[1] - idx[0] > 0))]  # only consider valid periods
 # V = [(_, _ + span) for _ in T for span in np.arange(1, valid_pair_span + 1) if _ + span < hours]  # only consider valid periods
 
 # LP
@@ -47,24 +48,25 @@ model.s = Var(T, domain=NonNegativeReals)
 
 # TODO: use R_ij matrix
 model.objective = Objective(
-    expr=sum(model.f[_] * ((p_t[_[1] - v__d]) * R_ij - (p_t[0] + v__c)) * np.exp(-r * _[1] / 8760) for _ in V),  
+    expr=sum(model.f[idx] * ((p_t[idx[1] - v__d]) * R_ij - (p_t[idx[0]] + v__c)) * np.exp(-r * idx[1] / 8760) for idx in V),  
     sense=maximize
 )
 
 # TODO: can these be vectorized, otherwise streamlined
 for period in T:
     model.constraints.add(model.s[period] <= S_t[period])
-    model.constraints.add(model.s[period] == sum(model.f[_] for _ in V if ((_[0] <= period) & (_[1] > period))))
+    model.constraints.add(model.s[period] == sum(model.f[idx] for idx in V if ((idx[0] <= period) & (idx[1] > period))))
     try: 
-        model.constraints.add(sum(model.f[_] for _ in V if (_[1] == period)) <= D_t)
+        model.constraints.add(sum(model.f[idx] for idx in V if (idx[1] == period)) <= D_t)
     except ValueError:  # no valid periods
         pass
     try: 
-        model.constraints.add(sum(model.f[_] for _ in V if (_[0] == period)) <= C_t)    
+        model.constraints.add(sum(model.f[idx] for idx in V if (idx[0] == period)) <= C_t)    
     except ValueError:  # no valid periods
         pass
 
-solver_factory = SolverFactory('glpk')
+# solver_factory = SolverFactory('glpk')
+solver_factory = SolverFactory('gurobi')
 results = solver_factory.solve(model)
 
 print(f"""
