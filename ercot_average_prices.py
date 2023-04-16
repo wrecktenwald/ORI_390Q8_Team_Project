@@ -11,7 +11,7 @@ from ercot_prices import ercot_dam_prices, ercot_rtm_prices
 years = range(2019, 2022 + 1)
 
 dam_by_yr = {yr: ercot_dam_prices(year=yr) for yr in years}
-rtm_by_yr = {yr: ercot_dam_prices(year=yr) for yr in years}
+rtm_by_yr = {yr: ercot_rtm_prices(year=yr) for yr in years}
 
 dam = pd.concat(dam_by_yr.values())
 rtm = pd.concat(rtm_by_yr.values())
