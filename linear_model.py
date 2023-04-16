@@ -22,7 +22,7 @@ lz_lcra_dam_2022.reset_index(inplace=True, drop=True)
 # hours = 8760
 hours = 24 * 7  
 # hours = 24 # testing for limited set of hours
-batch_runtime = 24 # number of hours it take to charge the battery (no discharge allowed)
+batch_runtime = 2 # number of hours it take to charge the battery (no discharge allowed)
 
 # Setting up in MW/MWh
 D_t = 0.9 * 100  # OR = (1 - 0.05) * 100
@@ -41,7 +41,7 @@ r = 0.05  # 5 to 10% noted to be a good assumption by Dr. Leibowicz
 T = np.arange(0, hours)  # use native 0 indexing in Python
 
 big_M = float('inf')
-max_charge = 1 # maximum number of batch charges allowed
+max_charge = 2 # maximum number of batch charges allowed
 
 # %%
 # LP
@@ -61,6 +61,7 @@ model.objective = Objective(
 
 # TODO: can these be vectorized, otherwise streamlined
 model.constraints.add(model.s[0] == 0) # initial storage set to 0
+model.constraints.add(sum(model.charging[t] for t in T) <= max_charge * batch_runtime)
 for period in T:
     model.constraints.add(model.s[period] <= S_t[period])
     model.constraints.add(model.d[period] <= D_t)
