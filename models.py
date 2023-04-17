@@ -123,7 +123,7 @@ class model:
             STATUS: {self.results['Solver'][0]['Status'].value.upper()}
             TERMINATION CONDITION: {self.results['Solver'][0]['Termination condition'].value.upper()}
             OBJECTIVE LOWER BOUND: {self.results['Problem'][0]['Lower bound']}
-            OBJECTIVE UPPER BOUND: {self.results['Problem'][0]['Lower bound']}
+            OBJECTIVE UPPER BOUND: {self.results['Problem'][0]['Upper bound']}
         """)
         self.model.solutions.store_to(self.results)  # store solutions too
 
@@ -147,6 +147,11 @@ class model:
 
         self.results.write(filename=filename, format='json')
 
+    def optimal(self):
+        self.setup_model()
+        solver_factory = SolverFactory(self.solver)
+        self.results = solver_factory.solve(self.model)
+        return self.results['Problem'][0]['Lower bound']
 
 class proposal_v2_1(model):
     """

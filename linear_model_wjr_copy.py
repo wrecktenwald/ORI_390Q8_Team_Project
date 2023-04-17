@@ -93,7 +93,7 @@ Solution Results for model
     STATUS: {results['Solver'][0]['Status'].value.upper()}
     TERMINATION CONDITION: {results['Solver'][0]['Termination condition'].value.upper()}
     OBJECTIVE LOWER BOUND: {results['Problem'][0]['Lower bound']}
-    OBJECTIVE UPPER BOUND: {results['Problem'][0]['Lower bound']}
+    OBJECTIVE UPPER BOUND: {results['Problem'][0]['Upper bound']}
 """)
 
 model.solutions.store_to(results)
