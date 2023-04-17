@@ -5,7 +5,9 @@ Run instantiated model from model classes using average ERCOT prices for 2019-20
 import numpy as np
 import pandas as pd
 
-from models import proposal_v2_1, linear_model_v1_0
+from models import proposal_v2_1
+from models import linear_model_v1_0
+from models import vp_v3_0
 
 
 ercot_data_folder = f"{__file__.split('ORI_390Q8_Team_Project')[0]}/ORI_390Q8_Team_Project/data/ERCOT/"
@@ -98,3 +100,26 @@ rtm_avg = pd.read_csv(f"{ercot_data_folder}/post_processing/rtm_avg.csv")
 # mod4.setup_model()
 # mod4.solve_model()
 # mod4.write_to_json(filename='mod4.json')
+
+mod5_wks = 52 * 30  # weekly
+mod5_hrs_p = np.repeat(dam_avg.loc[dam_avg['SETTLEMENT_POINT'] == 'LZ_LCRA'].sort_values(['MONTH', 'DAY', 'HOUR_ENDING'])['PRICE'].to_numpy(), 30)
+mod5_wks_p_ids = np.arange(len(mod5_hrs_p)) // (7 * 24)
+mod5_wks_p = np.bincount(mod5_wks_p_ids, mod5_hrs_p) / np.bincount(mod5_wks_p_ids)
+mod5 = vp_v3_0(
+    valid_pair_span=104,
+    periods=mod5_wks,
+    D=np.full(mod5_wks, 0.9 * 100),  # continue to use a normalized size
+    C=np.full(mod5_wks, 0.95 * 100),  # continue to use a normalized size
+    S=np.full(mod5_wks, 100),  # no system degradation
+    p=mod5_wks_p[:mod5_wks],
+    r=0.05,  # 5 to 10% noted to be a good assumption by Dr. Leibowicz
+    R=0.95,  # estimate fuel type costs, matrix implementation?
+    batch_c_rt=21,  # attempt to replace natural gas utility type storage with similar seasonality
+    batch_d_rt=31,  # attempt to replace natural gas utility type storage with similar seasonality
+    vc=1.5,  # estimate costs? 
+    vd=0.0,  # estimate costs?
+    solver='glpk'
+)
+mod5.setup_model()
+mod5.solve_model()
+mod5.write_to_json(filename='mod5.json')

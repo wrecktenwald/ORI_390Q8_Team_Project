@@ -1,0 +1,156 @@
+{
+    "Problem": [
+        {
+            "Lower bound": 1019.59293800026,
+            "Name": "unknown",
+            "Number of constraints": 193,
+            "Number of nonzeros": 446,
+            "Number of objectives": 1,
+            "Number of variables": 97,
+            "Sense": "maximize",
+            "Upper bound": 1019.59293800026
+        }
+    ],
+    "Solution": [
+        {
+            "number of solutions": 1,
+            "number of solutions displayed": 1
+        },
+        {
+            "Constraint": "No values",
+            "Gap": 0.0,
+            "Message": null,
+            "Objective": {
+                "objective": {
+                    "Value": 1019.592938000259
+                }
+            },
+            "Problem": {},
+            "Status": "optimal",
+            "Variable": {
+                "c[15]": {
+                    "Value": 2.8421709430404e-14
+                },
+                "c[3]": {
+                    "Value": 4.4979079497908
+                },
+                "c[4]": {
+                    "Value": 95.0
+                },
+                "charging[3]": {
+                    "Value": 1.0
+                },
+                "charging[4]": {
+                    "Value": 1.0
+                },
+                "d[16]": {
+                    "Value": 0.0836820083681999
+                },
+                "d[17]": {
+                    "Value": 49.3305439330544
+                },
+                "d[18]": {
+                    "Value": 24.6652719665272
+                },
+                "d[19]": {
+                    "Value": 12.3326359832636
+                },
+                "d[20]": {
+                    "Value": 6.1663179916318
+                },
+                "d[21]": {
+                    "Value": 3.0831589958159
+                },
+                "d[22]": {
+                    "Value": 1.54157949790795
+                },
+                "d[23]": {
+                    "Value": 0.770789748953975
+                },
+                "d[7]": {
+                    "Value": 0.0836820083681857
+                },
+                "d[8]": {
+                    "Value": 0.669456066945628
+                },
+                "s[10]": {
+                    "Value": 98.744769874477
+                },
+                "s[11]": {
+                    "Value": 98.744769874477
+                },
+                "s[12]": {
+                    "Value": 98.744769874477
+                },
+                "s[13]": {
+                    "Value": 98.744769874477
+                },
+                "s[14]": {
+                    "Value": 98.744769874477
+                },
+                "s[15]": {
+                    "Value": 98.744769874477
+                },
+                "s[16]": {
+                    "Value": 98.6610878661088
+                },
+                "s[17]": {
+                    "Value": 49.3305439330544
+                },
+                "s[18]": {
+                    "Value": 24.6652719665272
+                },
+                "s[19]": {
+                    "Value": 12.3326359832636
+                },
+                "s[20]": {
+                    "Value": 6.1663179916318
+                },
+                "s[21]": {
+                    "Value": 3.0831589958159
+                },
+                "s[22]": {
+                    "Value": 1.54157949790795
+                },
+                "s[23]": {
+                    "Value": 0.770789748953975
+                },
+                "s[3]": {
+                    "Value": 4.4979079497908
+                },
+                "s[4]": {
+                    "Value": 99.4979079497908
+                },
+                "s[5]": {
+                    "Value": 99.4979079497908
+                },
+                "s[6]": {
+                    "Value": 99.4979079497908
+                },
+                "s[7]": {
+                    "Value": 99.4142259414226
+                },
+                "s[8]": {
+                    "Value": 98.744769874477
+                },
+                "s[9]": {
+                    "Value": 98.7447698744769
+                }
+            }
+        }
+    ],
+    "Solver": [
+        {
+            "Error rc": 0,
+            "Statistics": {
+                "Branch and bound": {
+                    "Number of bounded subproblems": "3",
+                    "Number of created subproblems": "3"
+                }
+            },
+            "Status": "ok",
+            "Termination condition": "optimal",
+            "Time": 0.058475494384765625
+        }
+    ]
+}
