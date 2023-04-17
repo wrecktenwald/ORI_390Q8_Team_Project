@@ -74,6 +74,8 @@ def ercot_rtm_prices(
     raw_data = pd.concat(raw_data_by_month.values(), ignore_index=True)
     raw_data['Date'] = pd.to_datetime(raw_data['Delivery Date'])
     raw_data['YEAR'] = [_.year for _ in raw_data['Date']]
+    raw_data = raw_data.loc[raw_data['YEAR'] == year]  # data included outside of year raising error
+    raw_data.reset_index(drop=True, inplace=True)
     raw_data['MONTH'] = [_.month for _ in raw_data['Date']]
     raw_data['DAY'] = [_.day for _ in raw_data['Date']]
     raw_data['HOUR'] = [int(_) for _ in raw_data['Delivery Hour']]

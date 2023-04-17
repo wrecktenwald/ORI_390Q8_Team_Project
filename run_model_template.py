@@ -10,7 +10,7 @@ from models import proposal_v2_1, linear_model_v1_0
 
 ercot_data_folder = f"{__file__.split('ORI_390Q8_Team_Project')[0]}/ORI_390Q8_Team_Project/data/ERCOT/"
 dam_avg = pd.read_csv(f"{ercot_data_folder}/post_processing/dam_avg.csv")
-# rtm_avg = pd.read_csv(f"{ercot_data_folder}/post_processing/rtm_avg.csv")  # TODO: fix this dataset, use
+rtm_avg = pd.read_csv(f"{ercot_data_folder}/post_processing/rtm_avg.csv")  # TODO: fix this dataset, use
 
 mod1_hours = 8760
 mod1_theta_t = np.linspace(1, 0.8, mod1_hours * 10)  # decline to 80% after ten years
@@ -23,6 +23,7 @@ mod1 = proposal_v2_1(
     C=np.full(mod1_hours, 0.95 * 100),
     S=(100 * mod1_theta_t)[:mod1_hours],
     p=dam_avg.loc[dam_avg['SETTLEMENT_POINT'] == 'LZ_LCRA'].sort_values(['MONTH', 'DAY', 'HOUR_ENDING'])['PRICE'].to_numpy()[:mod1_hours],
+    # p=rtm_avg.loc[(rtm_avg['SETTLEMENT_POINT'] == 'LZ_LCRA') & (rtm_avg['TYPE'] == 'LZ')].sort_values(['MONTH', 'DAY', 'HOUR'])['PRICE'].to_numpy()[:mod1_hours],
     r=0.05,  # 5 to 10% noted to be a good assumption by Dr. Leibowicz
     R=0.915, 
     vc=0.0, 

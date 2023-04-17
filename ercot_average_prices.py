@@ -16,10 +16,18 @@ rtm_by_yr = {yr: ercot_rtm_prices(year=yr) for yr in years}
 dam = pd.concat(dam_by_yr.values())
 rtm = pd.concat(rtm_by_yr.values())
 
-group_by_cols = ['MONTH', 'DAY', 'HOUR_ENDING', 'SETTLEMENT_POINT']
-excl_cols = ['YEAR', 'REPEATED_HOUR_FLAG']
-dam_avg = dam.drop(labels=excl_cols, axis=1).groupby(by=group_by_cols, as_index=False).mean()
-rtm_avg = rtm.drop(labels=excl_cols, axis=1).groupby(by=group_by_cols, as_index=False).mean()
+dam_avg = dam.drop(
+    labels=['YEAR', 'REPEATED_HOUR_FLAG'], 
+    axis=1).groupby(
+    by=['MONTH', 'DAY', 'HOUR_ENDING', 'SETTLEMENT_POINT'], 
+    as_index=False
+).mean()
+rtm_avg = rtm.drop(
+    labels=['YEAR', 'INTERVAL','REPEATED_HOUR_FLAG'], 
+    axis=1).groupby(
+    by=['MONTH', 'DAY', 'HOUR', 'SETTLEMENT_POINT', 'TYPE'], 
+    as_index=False
+).mean()
 
 # Remove Febraury 29th as there is not sufficient data to average this
 dam_avg = dam_avg.loc[~((dam_avg['MONTH'] == 2) & (dam_avg['DAY'] == 29))]
