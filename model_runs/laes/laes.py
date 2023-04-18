@@ -28,13 +28,13 @@ days_p = dam_avg.loc[dam_avg['SETTLEMENT_POINT'] == 'LZ_LCRA'].sort_values(['MON
 big_S = 1  # normalize to 1 MWh
 baseline = dict(
     R=0.675,  # 2020 tech estimated 60-75%
-    valid_pair_span=days, 
-    DadnC=0.2
+    valid_pair_span=30, 
+    DandC=0.2
 )
 sa_params = dict(
-    R=np.arange(0.6, 1 + 0.05, 0.01),
-    valid_pair_span=np.concatenate((np.arange(1, 10 + 1, 1), np.arange(15, 60 + 5, 5))),
-    DadnC=np.concatenate((np.arange(0.01, 0.1 + 0.2, 0.2), np.arange(0.2, 1.0 + 0.1, 0.1)))
+    R=np.arange(0.6, 1 + 0.05, 0.01)[8:9],
+    # valid_pair_span=np.concatenate((np.arange(1, 10 + 1, 1), np.arange(15, 60 + 5, 5))),
+    # DandC=np.concatenate((np.arange(0.01, 0.1 + 0.2, 0.2), np.arange(0.2, 1.0 + 0.1, 0.1)))
 )
 
 mdl_params = baseline.copy()
@@ -67,7 +67,6 @@ for par, vals in sa_params.items():  # iterate over models editing baseline by p
         mdl_params = baseline.copy()
         mdl_params.update({par: val})
         mdl = vp_v4_0(
-            valid_pair_span=days,
             periods=days,
             S=np.full(days, big_S),  # no system degradation
             p=days_p[:days],
