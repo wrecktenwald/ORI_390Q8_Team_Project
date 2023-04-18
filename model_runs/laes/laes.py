@@ -32,9 +32,9 @@ baseline = dict(
     DandC=0.2
 )
 sa_params = dict(
-    R=np.arange(0.6, 1 + 0.05, 0.01)[8:9],
-    # valid_pair_span=np.concatenate((np.arange(1, 10 + 1, 1), np.arange(15, 60 + 5, 5))),
-    # DandC=np.concatenate((np.arange(0.01, 0.1 + 0.2, 0.2), np.arange(0.2, 1.0 + 0.1, 0.1)))
+    R=np.arange(0.6, 1 + 0.05, 0.01),
+    valid_pair_span=np.concatenate((np.arange(1, 10 + 1, 1), np.arange(15, 60 + 5, 5))),
+    DandC=np.concatenate((np.arange(0.01, 0.1 + 0.2, 0.2), np.arange(0.2, 1.0 + 0.1, 0.1)))
 )
 
 mdl_params = baseline.copy()
