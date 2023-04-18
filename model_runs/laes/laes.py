@@ -1,5 +1,5 @@
 """
-Sensitivity analysis for long term duration storage modeleled at a weekly level
+Sensitivity analysis for Liquid Air Energy Storage (LAES) applied to daily periods
 """
 
 import sys
@@ -16,43 +16,37 @@ dam_avg = pd.read_csv(f"{ercot_data_folder}/post_processing/dam_avg.csv")
 rtm_avg = pd.read_csv(f"{ercot_data_folder}/post_processing/rtm_avg.csv")
 
 try:
-    sa_output = pd.read_csv('model_runs/weekly_long_dur/weekly_long_dur_output.csv')  # update during runs 
+    sa_output = pd.read_csv('model_runs/laes/laes.csv')  # update during runs 
 except FileNotFoundError:
     print('Warning will create .csv')
     sa_output = pd.DataFrame()  # fill during runs
 
-wks = 52  # weekly, run one year in circular model
-hrs_p = dam_avg.loc[dam_avg['SETTLEMENT_POINT'] == 'LZ_LCRA'].sort_values(['MONTH', 'DAY', 'HOUR_ENDING'])['PRICE'].to_numpy()
-wks_p_ids = np.arange(len(hrs_p)) // (7 * 24)
-wks_p = np.bincount(wks_p_ids, hrs_p) / np.bincount(wks_p_ids)
+days = 365  # daily, run one year in circular model
+days_p = dam_avg.loc[dam_avg['SETTLEMENT_POINT'] == 'LZ_LCRA'].sort_values(['MONTH', 'DAY', 'HOUR_ENDING'])[['MONTH', 'DAY', 'PRICE']].groupby(
+    by=['MONTH', 'DAY'], as_index=False).mean()['PRICE'].to_numpy()  # TODO: switch pricing zone to near ATX, rtm? 
 
+big_S = 1  # normalize to 1 MWh
 baseline = dict(
-    R=0.95,  # estimate fuel type costs
-    batch_d_rt=21,  # attempt to replace natural gas utility type storage with similar seasonality
-    batch_c_rt=31,  # attempt to replace natural gas utility type storage with similar seasonality
-    vd=0.0,  # estimate costs?
-    vc=0.0  # estimate costs? 
+    R=0.675,  # 2020 tech estimated 60-75%
+    valid_pair_span=days, 
+    DadnC=0.2
 )
 sa_params = dict(
-    R=np.arange(0, 1 + 0.05, 0.05),
-    batch_d_rt=np.arange(40, 0, -1),
-    batch_c_rt=np.arange(40, 0, -1),
-    vd=np.concatenate((np.arange(0, 10 + 0.25, 0.25), np.arange(11, 20 + 1, 1), np.arange(25, 50 + 5, 5))),
-    vc=np.concatenate((np.arange(0, 10 + 0.25, 0.25), np.arange(11, 20 + 1, 1), np.arange(25, 50 + 5, 5)))
+    R=np.arange(0.6, 1 + 0.05, 0.01),
+    valid_pair_span=np.concatenate((np.arange(1, 10 + 1, 1), np.arange(15, 60 + 5, 5))),
+    DadnC=np.concatenate((np.arange(0.01, 0.1 + 0.2, 0.2), np.arange(0.2, 1.0 + 0.1, 0.1)))
 )
 
 mdl_params = baseline.copy()
-big_S = 100
 mdl = vp_v4_0(
-    valid_pair_span=wks,
-    periods=wks,
-    S=np.full(wks, big_S),  # no system degradation
-    p=wks_p[:wks],
+    periods=days,
+    S=np.full(days, big_S),  # no system degradation
+    p=days_p[:days],
     r=0.05,  # 5 to 10% noted to be a good assumption by Dr. Leibowicz
     solver='glpk',
-    D=np.full(wks, big_S / mdl_params['batch_d_rt']),
-    C=np.full(wks, big_S / mdl_params['batch_c_rt']),
-    **{k: v for k, v in mdl_params.items()}
+    D=np.full(days, mdl_params['DandC']),
+    C=np.full(days, mdl_params['DandC']),
+    **{k: v for k, v in mdl_params.items() if k not in ['D', 'C', 'DandC']}
 )
 mdl.setup_model()
 mdl.solve_model()
@@ -66,23 +60,22 @@ sa_output = pd.concat([sa_output, pd.DataFrame.from_dict({
     'Objective': np.array([mdl.results['Solution'][0]['Objective']['objective']['Value']])
 })], ignore_index=True)
 print('Ran SA for baseline')
-mdl.write_to_json(filename='model_runs/weekly_long_dur/baseline.json')
+mdl.write_to_json(filename='model_runs/daily_med_to_long_dur/baseline.json')
 
 for par, vals in sa_params.items():  # iterate over models editing baseline by param
     for val in vals:
         mdl_params = baseline.copy()
         mdl_params.update({par: val})
-        big_S = 100
         mdl = vp_v4_0(
-            valid_pair_span=wks,
-            periods=wks,
-            S=np.full(wks, big_S),  # no system degradation
-            p=wks_p[:wks],
+            valid_pair_span=days,
+            periods=days,
+            S=np.full(days, big_S),  # no system degradation
+            p=days_p[:days],
             r=0.05,  # 5 to 10% noted to be a good assumption by Dr. Leibowicz
             solver='glpk',
-            D=np.full(wks, big_S / mdl_params['batch_d_rt']),
-            C=np.full(wks, big_S / mdl_params['batch_c_rt']),
-            **{k: v for k, v in mdl_params.items()}
+            D=np.full(days, mdl_params['DandC']),
+            C=np.full(days, mdl_params['DandC']),
+            **{k: v for k, v in mdl_params.items() if k not in ['D', 'C', 'DandC']}
         )
         mdl.setup_model()
         mdl.solve_model()
@@ -97,4 +90,4 @@ for par, vals in sa_params.items():  # iterate over models editing baseline by p
         })], ignore_index=True)
         print(f"Ran SA for SA param {par} = {val}")
 
-sa_output.to_csv('model_runs/weekly_long_dur/weekly_long_dur_output.csv', index=False)
+sa_output.to_csv('model_runs/laes/laes.csv', index=False)

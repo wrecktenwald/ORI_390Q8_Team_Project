@@ -1,8 +1,5 @@
 """
 Sensitivity analysis for medium to long term duration storage modeleled at a daily level
-
-Assumptions for techology TODO based on:
-    - ...
 """
 
 import sys
