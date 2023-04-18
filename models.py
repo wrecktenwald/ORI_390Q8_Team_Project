@@ -147,10 +147,22 @@ class model:
 
         self.results.write(filename=filename, format='json')
 
-    def optimal(self):
+    def optimal(
+        self
+    ):
+        """
+        Organizational method to setup model, solve model silenty
+
+        Returns
+        _______
+        float
+            Lower bound of mathematical program
+        """
+
         self.setup_model()
         solver_factory = SolverFactory(self.solver)
         self.results = solver_factory.solve(self.model)
+
         return self.results['Problem'][0]['Lower bound']
 
 class proposal_v2_1(model):
