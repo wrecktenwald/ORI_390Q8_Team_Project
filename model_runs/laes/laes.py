@@ -22,8 +22,8 @@ except FileNotFoundError:
     sa_output = pd.DataFrame()  # fill during runs
 
 days = 365  # daily, run one year in circular model
-days_p = dam_avg.loc[dam_avg['SETTLEMENT_POINT'] == 'LZ_LCRA'].sort_values(['MONTH', 'DAY', 'HOUR_ENDING'])[['MONTH', 'DAY', 'PRICE']].groupby(
-    by=['MONTH', 'DAY'], as_index=False).mean()['PRICE'].to_numpy()  # TODO: switch pricing zone to near ATX, rtm? 
+days_p = dam_avg.loc[dam_avg['SETTLEMENT_POINT'] == 'LZ_AEN'].sort_values(['MONTH', 'DAY', 'HOUR_ENDING'])[['MONTH', 'DAY', 'PRICE']].groupby(
+    by=['MONTH', 'DAY'], as_index=False).mean()['PRICE'].to_numpy() 
 
 big_S = 1  # normalize to 1 MWh
 baseline = dict(

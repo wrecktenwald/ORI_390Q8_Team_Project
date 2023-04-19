@@ -22,10 +22,11 @@ except FileNotFoundError:
     sa_output = pd.DataFrame()  # fill during runs
 
 wks = 52  # weekly, run one year in circular model
-hrs_p = dam_avg.loc[dam_avg['SETTLEMENT_POINT'] == 'LZ_LCRA'].sort_values(['MONTH', 'DAY', 'HOUR_ENDING'])['PRICE'].to_numpy()
+hrs_p = dam_avg.loc[dam_avg['SETTLEMENT_POINT'] == 'LZ_AEN'].sort_values(['MONTH', 'DAY', 'HOUR_ENDING'])['PRICE'].to_numpy()
 wks_p_ids = np.arange(len(hrs_p)) // (7 * 24)
 wks_p = np.bincount(wks_p_ids, hrs_p) / np.bincount(wks_p_ids)
 
+big_S = 1  # normalize to 1 MWh
 baseline = dict(
     R=0.95,  # estimate fuel type costs
     batch_d_rt=21,  # attempt to replace natural gas utility type storage with similar seasonality
@@ -42,7 +43,6 @@ sa_params = dict(
 )
 
 mdl_params = baseline.copy()
-big_S = 100
 mdl = vp_v4_0(
     valid_pair_span=wks,
     periods=wks,
@@ -72,7 +72,6 @@ for par, vals in sa_params.items():  # iterate over models editing baseline by p
     for val in vals:
         mdl_params = baseline.copy()
         mdl_params.update({par: val})
-        big_S = 100
         mdl = vp_v4_0(
             valid_pair_span=wks,
             periods=wks,
