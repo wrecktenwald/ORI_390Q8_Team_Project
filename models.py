@@ -269,7 +269,7 @@ class proposal_v2_1(model):
             sense=pyo.maximize
         )
 
-        for pd in T:  # TODO: can for loop be vectorized, otherwise streamlined
+        for pd in T:
             self.model.constraints.add(self.model.s[pd] <= self.S[pd])
             self.model.constraints.add(self.model.s[pd] == sum(self.model.f[idx] for idx in V if ((idx[0] <= pd) & (idx[1] > pd))))
             try: 
@@ -398,7 +398,7 @@ class linear_model_v1_0(model):
 
         self.model.constraints.add(self.model.s[0] == 0) # initial storage set to 0
         self.model.constraints.add(sum(self.model.charging[t] for t in T) <= (self.max_charge * self.batch_runtime))
-        for pd in T:  # TODO: can for loop be vectorized, otherwise streamlined
+        for pd in T:
             self.model.constraints.add(self.model.s[pd] <= self.S[pd])
             self.model.constraints.add(self.model.d[pd] <= self.D[pd])
             self.model.constraints.add(self.model.d[pd] <= self.model.s[pd])  # discharge cannot exceed what's currently in storage
@@ -540,7 +540,7 @@ class vp_v3_0(model):
         )
 
         self.model.constraints.add(self.model.s[0] == 0)  # initial storage set to 0, already forced by valid period gen, reinforce for MILP
-        for pd in T:  # TODO: can for loop be vectorized, otherwise streamlined
+        for pd in T:
 
             if pd > 0:
                 self.model.constraints.add(self.model.s[pd] <= self.S[pd])
@@ -581,7 +581,7 @@ class vp_v3_0(model):
 class vp_v4_0(model):
     """
     Updated model detailed in theory in Team Project Proposal Follow-up v2.docx based on the concept of valid pairs with addition of batch charge, discharge runtime. Modifying 
-    start, end storage to be equivalent to force a "circular" model that could be oprated on one period and assumed to be cycled in similar fashion if an appropriate price 
+    start, end storage to be equivalent to force a "perpetual" model that could be oprated on one period and assumed to be cycled in similar fashion if an appropriate price 
     set is utilized.   
 
     Attributes
@@ -653,9 +653,9 @@ class vp_v4_0(model):
         R : numpy.array or float
             Round trip efficiency matrix time dependent on charge (i), discharge (j) periods or non time dependent
         batch_c_rt : int, default None
-            Number of consecutive periods it takes to charge with no discharge allowed
+            Number of consecutive periods it takes to charge with no discharge allowed (must be less than periods)
         batch_d_rt : int, default None
-            Number of consecutive periods it takes to discharge with no charge allowed
+            Number of consecutive periods it takes to discharge with no charge allowed (must be less than periods)
         vc : float, default 0.0
             Variable charge cost
         vd : float, default 0.0
@@ -683,7 +683,7 @@ class vp_v4_0(model):
 
         T = np.arange(0, self.periods)  # use native 0 indexing in Python
         V = [(_, _ + span) for _ in T for span in np.arange(1, self.valid_pair_span + 1) if _ + span < self.periods]  # only consider valid periods
-        V += [(_, _ + span - self.periods) for _ in T for span in np.arange(1, self.valid_pair_span + 1) if _ + span >= self.periods]  # circular periods
+        V += [(_, _ + span - self.periods) for _ in T for span in np.arange(1, self.valid_pair_span + 1) if _ + span >= self.periods]  # perpetual periods
 
         self.model = pyo.ConcreteModel()
         self.model.constraints = pyo.ConstraintList()
@@ -701,23 +701,32 @@ class vp_v4_0(model):
             sense=pyo.maximize
         )
 
-        self.model.constraints.add(self.model.s[0] == self.model.s[T[-1]])  # initial storage set to final s
-        for pd in T:  # TODO: can for loop be vectorized, otherwise streamlined
+        for pd in T:
 
+            self.model.constraints.add(self.model.s[pd] <= self.S[pd])
             if pd > 0:
-                self.model.constraints.add(self.model.s[pd] <= self.S[pd])
-                self.model.constraints.add(self.model.s[pd] == sum(self.model.f[idx] for idx in V if ((idx[0] <= pd) & (idx[1] > pd))))
+                self.model.constraints.add(
+                    self.model.s[pd] == 
+                    (self.model.s[pd - 1] + sum(self.model.f[idx] for idx in V if (idx[0] == pd)) - sum(self.model.f[idx] for idx in V if (idx[1] == pd)))
+                )  # flow balance
+            elif pd == 0:
+                self.model.constraints.add(
+                    self.model.s[pd] == 
+                    (self.model.s[T[-1]] + sum(self.model.f[idx] for idx in V if (idx[0] == pd)) - sum(self.model.f[idx] for idx in V if (idx[1] == pd)))
+                )  # perpetual flow balance
+            else: 
+                raise ValueError(f"Unexpected pd value of {pd}")
             
             try:
                 if self.batch_c_rt:
-                    self.model.constraints.add(sum(self.model.f[idx] for idx in V if (idx[1] == pd)) <= (self.D[pd] * (1 - self.model.c[pd])))  # tighter bound than big M, no discharge while charging
+                    self.model.constraints.add(sum(self.model.f[idx] for idx in V if (idx[1] == pd)) <= (self.D[pd] * self.model.d[pd]))  # tighter bound than big M, discharge while discharging
                 else: 
                     self.model.constraints.add(sum(self.model.f[idx] for idx in V if (idx[1] == pd)) <= self.D[pd])
             except ValueError:  # no valid periods
                 pass
             try: 
                 if self.batch_d_rt:
-                    self.model.constraints.add(sum(self.model.f[idx] for idx in V if (idx[0] == pd)) <= (self.C[pd] * (1 - self.model.d[pd])))  # tighter bound than big M, no charge while discharging    
+                    self.model.constraints.add(sum(self.model.f[idx] for idx in V if (idx[0] == pd)) <= (self.C[pd] * self.model.c[pd]))  # tighter bound than big M, charge while charging    
                 else: 
                     self.model.constraints.add(sum(self.model.f[idx] for idx in V if (idx[0] == pd)) <= self.C[pd])
             except ValueError:  # no valid periods
@@ -725,18 +734,50 @@ class vp_v4_0(model):
             
             if self.batch_c_rt:
                 if pd > 0:
-                    self.model.constraints.add(sum([self.model.c[_] for _ in range(pd, min(self.periods, pd + self.batch_c_rt))]) >= self.batch_c_rt * (self.model.c[pd] - self.model.c[pd - 1]))   
-                    self.model.constraints.add(sum([self.model.c[_] for _ in range(pd, min(self.periods, pd + self.batch_c_rt + 1))]) <= self.batch_c_rt)
-                else:
-                    self.model.constraints.add(sum([self.model.c[_] for _ in range(pd, min(self.periods, pd + self.batch_c_rt))]) >= self.batch_c_rt * (self.model.c[pd] - self.model.c[T[-1]]))  
-                    self.model.constraints.add(sum([self.model.c[_] for _ in range(pd, min(self.periods, pd + self.batch_c_rt + 1))]) <= self.batch_c_rt)
+                    self.model.constraints.add(
+                        (
+                            sum(self.model.c[_] for _ in np.arange(pd, pd + self.batch_c_rt) if _ < self.periods) + 
+                            sum(self.model.c[_ - self.periods] for _ in np.arange(pd, pd + self.batch_c_rt) if _ >= self.periods)
+                        ) >= (self.batch_c_rt * (self.model.c[pd] - self.model.c[pd - 1]))
+                    )   
+                elif pd == 0:
+                    self.model.constraints.add(
+                        (
+                            sum(self.model.c[_] for _ in np.arange(pd, pd + self.batch_c_rt) if _ < self.periods) + 
+                            sum(self.model.c[_ - self.periods] for _ in np.arange(pd, pd + self.batch_c_rt) if _ >= self.periods)
+                        ) >= (self.batch_c_rt * (self.model.c[pd] - self.model.c[T[-1]]))
+                    )   
+                else: 
+                    raise ValueError(f"Unexpected pd value of {pd}")
+                self.model.constraints.add(
+                    (
+                        sum(self.model.c[_] for _ in np.arange(pd, pd + self.batch_c_rt + 1) if _ < self.periods) + 
+                        sum(self.model.c[_ - self.periods] for _ in np.arange(pd, pd + self.batch_c_rt + 1) if _ >= self.periods)
+                    ) <= (self.batch_c_rt)
+                )
 
             if self.batch_d_rt:
                 if pd > 0:
-                    self.model.constraints.add(sum([self.model.d[_] for _ in range(pd, min(self.periods, pd + self.batch_d_rt))]) >= self.batch_d_rt * (self.model.d[pd] - self.model.d[pd - 1]))   
-                    self.model.constraints.add(sum([self.model.d[_] for _ in range(pd, min(self.periods, pd + self.batch_d_rt + 1))]) <= self.batch_d_rt)
-                else:
-                    self.model.constraints.add(sum([self.model.d[_] for _ in range(pd, min(self.periods, pd + self.batch_d_rt))]) >= self.batch_d_rt * (self.model.d[pd] - self.model.d[T[-1]]))  
-                    self.model.constraints.add(sum([self.model.d[_] for _ in range(pd, min(self.periods, pd + self.batch_d_rt + 1))]) <= self.batch_d_rt)
+                    self.model.constraints.add(
+                        (
+                            sum(self.model.d[_] for _ in np.arange(pd, pd + self.batch_d_rt) if _ < self.periods) + 
+                            sum(self.model.d[_ - self.periods] for _ in np.arange(pd, pd + self.batch_d_rt) if _ >= self.periods)
+                        ) >= (self.batch_d_rt * (self.model.d[pd] - self.model.d[pd - 1]))
+                    )   
+                elif pd == 0:
+                    self.model.constraints.add(
+                        (
+                            sum(self.model.d[_] for _ in np.arange(pd, pd + self.batch_d_rt) if _ < self.periods) + 
+                            sum(self.model.d[_ - self.periods] for _ in np.arange(pd, pd + self.batch_d_rt) if _ >= self.periods)
+                        ) >= (self.batch_d_rt * (self.model.d[pd] - self.model.d[T[-1]]))
+                    )   
+                else: 
+                    raise ValueError(f"Unexpected pd value of {pd}")
+                self.model.constraints.add(
+                   (
+                        sum(self.model.d[_] for _ in np.arange(pd, pd + self.batch_d_rt + 1) if _ < self.periods) + 
+                        sum(self.model.d[_ - self.periods] for _ in np.arange(pd, pd + self.batch_d_rt + 1) if _ >= self.periods)
+                    ) <= (self.batch_d_rt)
+                )
 
         elapsed_time_display(start, ' (model setup time)')
